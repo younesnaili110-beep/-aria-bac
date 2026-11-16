@@ -5401,34 +5401,35 @@ function drawSyncCanvasQR(code) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, 140, 140);
 
-  // Deterministic matrix pattern generator based on sync code
-  const num = parseInt(code, 10) || 123456;
-  const gridSize = 14;
-  const cellSize = 140 / gridSize;
-
-  ctx.fillStyle = '#050714';
-
-  for (let r = 0; r < gridSize; r++) {
-    for (let c = 0; c < gridSize; c++) {
-      // Corner squares like QR code anchors
-      const isTopLeft = (r < 4 && c < 4);
-      const isTopRight = (r < 4 && c >= gridSize - 4);
-      const isBottomLeft = (r >= gridSize - 4 && c < 4);
-
-      if (isTopLeft || isTopRight || isBottomLeft) {
-        if (r === 0 || r === 3 || c === 0 || c === 3 ||
-            r === gridSize - 4 || r === gridSize - 1 || c === gridSize - 4 || c === gridSize - 1 ||
-            (r >= 1 && r <= 2 && c >= 1 && c <= 2 && isTopLeft)) {
-          ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
-        }
-      } else {
-        const val = (num * (r + 1) * 31 + (c + 1) * 17) % 7;
-        if (val % 2 === 0) {
-          ctx.fillRect(c * cellSize, r * cellSize, cellSize - 0.5, cellSize - 0.5);
+  // Render real scannable QR Code image using public QR service with fallback
+  const syncPayload = encodeURIComponent(window.location.href);
+  const qrImg = new Image();
+  qrImg.crossOrigin = 'anonymous';
+  qrImg.onload = () => {
+    ctx.drawImage(qrImg, 0, 0, 140, 140);
+  };
+  qrImg.onerror = () => {
+    // If offline, draw local standard visual pattern
+    ctx.fillStyle = '#050714';
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) {
+        const isTopLeft = (r < 4 && c < 4);
+        const isTopRight = (r < 4 && c >= gridSize - 4);
+        const isBottomLeft = (r >= gridSize - 4 && c < 4);
+        if (isTopLeft || isTopRight || isBottomLeft) {
+          if (r === 0 || r === 3 || c === 0 || c === 3 || (r >= 1 && r <= 2 && c >= 1 && c <= 2 && isTopLeft)) {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+          }
+        } else {
+          const val = (num * (r + 1) * 31 + (c + 1) * 17) % 7;
+          if (val % 2 === 0) {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize - 0.5, cellSize - 0.5);
+          }
         }
       }
     }
-  }
+  };
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${syncPayload}`;
 }
 
 function exportStudentData() {
